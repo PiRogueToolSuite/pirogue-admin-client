@@ -1,0 +1,7 @@
+.pybuild/
+build/
+*.egg-info/
+**/debian/.debhelper
+**/debian/files
+**/debian/pirogue-admin-client/
+**/debian/debhelper-build-stamp
