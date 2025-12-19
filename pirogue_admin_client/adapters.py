@@ -96,12 +96,14 @@ class SystemAdapter(BaseAdapter):
 
     def get_status(self):
         answer = self._stub_system.GetStatus(EMPTY)
-        answer = MessageToDict(answer)
+        answer = MessageToDict(answer, preserving_proto_field_name=True)
         return answer
 
     def get_packages_info(self):
         answer = self._stub_system.GetPackagesInfo(EMPTY)
-        answer = MessageToDict(answer)
+        answer = MessageToDict(answer, preserving_proto_field_name=True)
+        if 'packages' in answer:
+            answer = answer['packages']
         return answer
 
     def get_hostname(self):
