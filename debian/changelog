@@ -1,8 +1,9 @@
-pirogue-admin-client (2.0.4) UNRELEASED; urgency=medium
+pirogue-admin-client (2.0.5) bookworm; urgency=medium
 
   * Improved packages info message ans status.
+  * Adds support of user access token
 
- -- Christophe Andral <christophe@andral.fr>  Fri, 02 Dec 2025 09:17:39 +0100
+ -- Christophe Andral <christophe@andral.fr>  Thu, 12 Feb 2026 16:32:55 +0100
 
 pirogue-admin-client (2.0.3) bookworm; urgency=medium
 

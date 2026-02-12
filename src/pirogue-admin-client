@@ -14,17 +14,18 @@ _pac_completions()
 	#not accessible features for now:
 	#pac_mapping['pirogue-admin-client']="system external-network isolated-network vpn wifi suricata-rules dashboard"
 	#pac_mapping['pirogue-admin-client system']="get-configuration-tree get-configuration get-operating-mode get-status get-packages-info get-hostname set-hostname get-locale set-locale get-timezone set-timezone list-connected-devices"
-	pac_mapping['pirogue-admin-client']="system external-network isolated-network vpn wifi dashboard"
-	pac_mapping['pirogue-admin-client system']="get-configuration-tree get-configuration get-operating-mode get-status get-packages-info get-hostname get-locale get-timezone list-connected-devices"
-	pac_mapping['pirogue-admin-client external-network']="reset-administration-token get-administration-token get-administration-certificate get-administration-clis enable-public-access disable-public-access"
+	pac_mapping['pirogue-admin-client']="access dashboard external-network isolated-network system vpn wifi"
+	pac_mapping['pirogue-admin-client access']="get-administration-token get-administration-certificate get-administration-clis reset-administration-token create-user-access get-user-access list-user-accesses delete-user-access reset-user-access-token get-permission-list set-user-access-permissions"
+	pac_mapping['pirogue-admin-client dashboard']="get-configuration set-configuration"
+	pac_mapping['pirogue-admin-client dashboard set-configuration']="--password"
+  pac_mapping['pirogue-admin-client external-network']="reset-administration-token get-administration-token get-administration-certificate get-administration-clis enable-public-access disable-public-access"
 	pac_mapping['pirogue-admin-client isolated-network']="open-port close-port list-open-ports"
+	#not accessible for now: suricata-rules
+	#pac_mapping['pirogue-admin-client suricata-rules']="list-sources del-source add-source"
+	pac_mapping['pirogue-admin-client system']="get-configuration-tree get-configuration get-operating-mode get-status get-packages-info get-hostname get-locale get-timezone list-connected-devices"
 	pac_mapping['pirogue-admin-client vpn']="list-peers get-peer get-peer-config add-peer delete-peer"
 	pac_mapping['pirogue-admin-client wifi']="get-configuration set-configuration"
 	pac_mapping['pirogue-admin-client wifi set-configuration']="--ssid --passphrase --country-code"
-	#not accessible for now: suricata-rules
-	#pac_mapping['pirogue-admin-client suricata-rules']="list-sources del-source add-source"
-	pac_mapping['pirogue-admin-client dashboard']="get-configuration set-configuration"
-	pac_mapping['pirogue-admin-client dashboard set-configuration']="--password"
 
 	map_ref=("${COMP_WORDS[@]}")
 	unset 'map_ref[${#map_ref[@]}-1]'

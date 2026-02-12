@@ -1,1 +1,1 @@
-src/pirogue-admin-client  etc/bash_completion.d
+src/pirogue-admin-client  usr/share/bash-completion/completions

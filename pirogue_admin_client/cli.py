@@ -1,5 +1,13 @@
-import argparse
+import os
 import logging
+
+log_level = os.getenv('LOG_LEVEL', 'WARNING')
+logging_level = getattr(logging, log_level.upper(), None)
+if not isinstance(logging_level, int):
+    raise ValueError(f'Invalid log level: {log_level}')
+logging.basicConfig(level=logging_level)
+
+import argparse
 import sys
 from enum import Enum
 from pathlib import Path
@@ -9,6 +17,7 @@ import yaml
 from dataclasses import dataclass
 from typing import TextIO
 
+from grpc import RpcError
 from pirogue_admin_client import PirogueAdminClientAdapter
 
 
@@ -29,6 +38,8 @@ def _adapter(ctx: ClientCallContext):
 
 def call_function(ctx: ClientCallContext, function, kwargs, out_fs: TextIO = None):
 
+    err_msg = 0
+
     if out_fs is None:
         out_fs = sys.stdout
 
@@ -36,27 +47,30 @@ def call_function(ctx: ClientCallContext, function, kwargs, out_fs: TextIO = Non
     if not hasattr(paca, function):
         raise ValueError(f'"{function}" is not a valid function')
     func = getattr(paca, function)
-    result = func(**kwargs)
 
-    if type(result) in [dict, list]:
-        yaml.safe_dump(result, out_fs)
-    elif type(result) is Enum:
-        out_fs.write(f'{result.name}\n')
-    elif result is None:
-        print(f'{function} done.')
-    elif type(result) is str:
-        out_fs.write(f'{result}\n')
-    else:
-        print('it is other', type(result))
-        out_fs.write(f'{result}\n')
+    try:
+        result = func(**kwargs)
+
+        if type(result) in [dict, list]:
+            yaml.safe_dump(result, out_fs)
+        elif type(result) is Enum:
+            out_fs.write(f'{result.name}\n')
+        elif result is None:
+            print(f'{function} done.')
+        elif type(result) is str:
+            out_fs.write(f'{result}\n')
+        else:
+            print('answer is an unsupported type:', type(result))
+            out_fs.write(f'{result}\n')
+    except RpcError as rpc_error:
+        err_msg = f'error: {rpc_error.details()}'
 
     if out_fs is not sys.stdout:
         out_fs.close()
 
+    return err_msg
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
-
     parser = argparse.ArgumentParser(
         description='PiRogue administration client',
     )
@@ -92,6 +106,7 @@ def main():
     wifi_parser = section_subparser.add_parser('wifi', help='WiFi related administration')
     suricata_rules_parser = section_subparser.add_parser('suricata-rules', help='Suricata related administration')
     dashboard_parser = section_subparser.add_parser('dashboard', help='Dashboard related administration')
+    access_parser = section_subparser.add_parser('access', help='Access related administration')
 
     #
     # System related subparser
@@ -163,27 +178,6 @@ def main():
     #
     # External related subparser
     external_subparser = external_parser.add_subparsers(title="External network administration")
-    #
-    external_reset_administration_token = external_subparser.add_parser(
-        'reset-administration-token',
-        help='renew the administration token.'
-             'Revoke the current token then generate a new one.')
-    external_reset_administration_token.set_defaults(func='reset_administration_token')
-    #
-    external_get_administration_token = external_subparser.add_parser(
-        'get-administration-token',
-        help='get the current working administration token (needed to connect remotely)')
-    external_get_administration_token.set_defaults(func='get_administration_token')
-    #
-    external_get_administration_certificate = external_subparser.add_parser(
-        'get-administration-certificate',
-        help='get the current self-signed certificate (needed to connect remotely)')
-    external_get_administration_certificate.set_defaults(func='get_administration_certificate')
-    #
-    external_get_administration_clis = external_subparser.add_parser(
-        'get-administration-clis',
-        help='get the current working administration token (needed to connect remotely)')
-    external_get_administration_clis.set_defaults(func='get_administration_clis')
     #
     external_enable_public_access = external_subparser.add_parser(
         'enable-public-access',
@@ -319,6 +313,114 @@ examples:
         help='get dashboard configuration')
     dashboard_get_configuration.set_defaults(func='get_dashboard_configuration')
 
+    #
+    # Access related subparser
+    access_subparser = access_parser.add_subparsers(title="Access administration")
+    #
+    access_reset_administration_token = access_subparser.add_parser(
+        'reset-administration-token',
+        help='renew the administration token.'
+             'Revoke the current token then generate a new one.')
+    access_reset_administration_token.set_defaults(func='reset_administration_token')
+    #
+    access_get_administration_token = access_subparser.add_parser(
+        'get-administration-token',
+        help='get the current working administration token (needed to connect remotely)')
+    access_get_administration_token.set_defaults(func='get_administration_token')
+    #
+    access_get_administration_certificate = access_subparser.add_parser(
+        'get-administration-certificate',
+        help='get the current self-signed certificate (needed to connect remotely)')
+    access_get_administration_certificate.set_defaults(func='get_administration_certificate')
+    #
+    access_get_administration_clis = access_subparser.add_parser(
+        'get-administration-clis',
+        help='get a set of shell commands to configuration a new remote pirogue-admin-client')
+    access_get_administration_clis.set_defaults(func='get_administration_clis')
+    #
+    access_create_user_access = access_subparser.add_parser(
+        'create-user-access',
+        help='create a new user access entry (with no permissions by default)')
+    access_create_user_access.set_defaults(func='create_user_access')
+    #
+    access_get_user_access = access_subparser.add_parser(
+        'get-user-access',
+        help='retrieve user access details given its index')
+    access_get_user_access.add_argument('idx')
+    access_get_user_access.set_defaults(func='get_user_access')
+    #
+    access_list_user_accesses = access_subparser.add_parser(
+        'list-user-accesses',
+        help='list all active user accesses')
+    access_list_user_accesses.set_defaults(func='list_user_accesses')
+    #
+    access_delete_user_access = access_subparser.add_parser(
+        'delete-user-access',
+        help='delete a user access given its index')
+    access_delete_user_access.add_argument('idx')
+    access_delete_user_access.set_defaults(func='delete_user_access')
+    #
+    access_reset_user_access_token = access_subparser.add_parser(
+        'reset-user-access-token',
+        help='reset the token of a given user access index')
+    access_reset_user_access_token.add_argument('idx')
+    access_reset_user_access_token.set_defaults(func='reset_user_access_token')
+    #
+    access_get_permission_list = access_subparser.add_parser(
+        'get-permission-list',
+        help='get all available permissions for each accessible services')
+    access_get_permission_list.set_defaults(func='get_permission_list')
+    #
+    access_set_user_access_permissions = access_subparser.add_parser(
+        'set-user-access-permissions',
+        help='change permissions of a given user access index',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''\
+idx:
+  the user access index to modify
+  
+permissions:
+  syntax: [MODIFIER]SERVICE[:PERMISSION]
+  multiple changes are expressed as a space-separated list of permissions
+
+MODIFIER:
+  + adds the given SERVICE:PERMISSION
+  - removes the given SERVICE:PERMISSION
+  <none> sets the given SERVICE:PERMISSION (and remove all other permissions)
+
+SERVICE:
+  a service name as expressed by `get-permission-list`
+
+PERMISSION:
+  a permission name for a given SERVICE as expressed by `get-permission-list`
+
+Before configuring permissions on user accesses, get the list of all available permissions with the
+`get-permission-list` command:
+  pirogue-admin-client access get-permission-list
+
+Permissions are organized as a tree with service name as keys and permission name as leafs:
+  - Service1:
+    - Permission1
+    - Permission2
+  - Service2:
+    - Permission3
+    - Permission4 
+
+Examples:
+  (assuming all this example modifies the user access of idx 8)
+  - adds all permissions of the 'System' service:
+    pirogue-admin-client access set-user-access-permissions -- 8 +System  
+  - removes one permission:
+    pirogue-admin-client access set-user-access-permissions -- 8 -System:GetConfiguration
+  - do both of previous command at once:
+    pirogue-admin-client access set-user-access-permissions -- 8 +System -System:GetConfiguration
+  - removes all permissions and only sets the given ones:
+    pirogue-admin-client access set-user-access-permissions -- 8 System:GetStatus
+        ''')
+    access_set_user_access_permissions.add_argument('idx')
+    access_set_user_access_permissions.add_argument('permissions', nargs='+')
+    access_set_user_access_permissions.set_defaults(func='set_user_access_permissions')
+
     args = parser.parse_args()
 
     certification_str = None
@@ -330,6 +432,8 @@ examples:
 
     client_ctx_call = ClientCallContext(args.host, args.port, args.token, certification_str)
 
+    err_msg = 0
+
     if 'func' in args:
         kwargs = dict(vars(args))
         kwargs.pop('host')
@@ -338,12 +442,13 @@ examples:
         kwargs.pop('save_configuration')
         kwargs.pop('certificate', False)
         func = kwargs.pop('func')
-        call_function(client_ctx_call, func, kwargs)
+        err_msg = call_function(client_ctx_call, func, kwargs)
 
     if args.save_configuration:
         _adapter(client_ctx_call).save_configuration()
         print('configuration saved.')
 
+    return err_msg
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

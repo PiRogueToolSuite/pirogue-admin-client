@@ -1,0 +1,1 @@
+rm_conffile /etc/bash_completion.d/pirogue-admin-client 2.0.5~

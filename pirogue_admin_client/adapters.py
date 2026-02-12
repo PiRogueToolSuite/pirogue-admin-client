@@ -1,8 +1,9 @@
 import functools
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 
 import grpc
 import yaml
@@ -13,15 +14,25 @@ from google.protobuf.wrappers_pb2 import Int32Value, UInt32Value, StringValue
 from pirogue_admin_api import system_pb2, system_pb2_grpc
 from pirogue_admin_api import services_pb2, services_pb2_grpc
 from pirogue_admin_api import network_pb2, network_pb2_grpc
+from pirogue_admin_api import access_pb2, access_pb2_grpc
 
 from pirogue_admin_api import (
     PIROGUE_ADMIN_AUTH_HEADER, PIROGUE_ADMIN_AUTH_SCHEME,
     PIROGUE_ADMIN_TCP_PORT)
 from pirogue_admin_api.network_pb2 import WifiConfiguration, VPNPeerAddRequest, ClosePortRequest, IsolatedPort, PublicAccessRequest
 from pirogue_admin_api.services_pb2 import DashboardConfiguration, SuricataRulesSource
+from pirogue_admin_api.access_pb2 import (
+    MethodAccess,
+    ServiceAccess,
+    UserAccess,
+    UserAccessList,
+    PermissionChanges,
+)
 from pirogue_admin_client.types import OperatingMode
 
 EMPTY = empty_pb2.Empty()
+
+logger = logging.getLogger(__name__)
 
 
 class NoPiRogueAdminConnection(BaseException):
@@ -158,7 +169,7 @@ class NetworkAdapter(BaseAdapter):
             message.passphrase = passphrase
         if country_code:
             message.country_code = country_code
-        logging.debug(f'set_wifi_configuration({message})')
+        logger.debug(f'set_wifi_configuration({message})')
         answer = self._stub_network.SetWifiConfiguration(message)
 
     def list_vpn_peers(self):
@@ -193,26 +204,6 @@ class NetworkAdapter(BaseAdapter):
         idx_param.value = int(idx)
         answer = self._stub_network.DeleteVPNPeer(idx_param)
         answer = MessageToDict(answer, preserving_proto_field_name=True)
-        return answer
-
-    def reset_administration_token(self):
-        answer = self._stub_network.ResetAdministrationToken(EMPTY)
-        answer = MessageToDict(answer)
-        return answer
-
-    def get_administration_token(self):
-        answer = self._stub_network.GetAdministrationToken(EMPTY)
-        answer = MessageToDict(answer)
-        return answer
-
-    def get_administration_certificate(self):
-        answer = self._stub_network.GetAdministrationCertificate(EMPTY)
-        answer = MessageToDict(answer)
-        return answer
-
-    def get_administration_clis(self):
-        answer = self._stub_network.GetAdministrationCLIs(EMPTY)
-        answer = MessageToDict(answer)
         return answer
 
     def enable_external_public_access(self, domain: str, email: str):
@@ -271,3 +262,95 @@ class ServicesAdapter(BaseAdapter):
 
     def delete_suricata_rules_source(self, name: str):
         answer = self._stub_services.DeleteSuricataRulesSource(StringValue(value=name))
+
+class AccessAdapter(BaseAdapter):
+    _stub_access: access_pb2_grpc.AccessStub
+    _permission_str_regex = r"^(\+|-)?(\w+)(:(\w+))?$"
+
+    def __init__(self, channel):
+        super(AccessAdapter, self).__init__(channel)
+        self._stub_access = access_pb2_grpc.AccessStub(channel)
+        self._permission_str_regex = re.compile(self._permission_str_regex)
+
+    def reset_administration_token(self):
+        answer = self._stub_access.ResetAdministrationToken(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def get_administration_token(self):
+        answer = self._stub_access.GetAdministrationToken(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def get_administration_certificate(self):
+        answer = self._stub_access.GetAdministrationCertificate(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def get_administration_clis(self):
+        answer = self._stub_access.GetAdministrationCLIs(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def create_user_access(self):
+        answer = self._stub_access.CreateUserAccess(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def get_user_access(self, idx:int):
+        idx_param = Int32Value()
+        idx_param.value = int(idx)
+        answer = self._stub_access.GetUserAccess(idx_param)
+        answer = MessageToDict(answer)
+        return answer
+
+    def list_user_accesses(self):
+        answer = self._stub_access.ListUserAccesses(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def delete_user_access(self, idx:int):
+        idx_param = Int32Value()
+        idx_param.value = int(idx)
+        answer = self._stub_access.DeleteUserAccess(idx_param)
+
+    def reset_user_access_token(self, idx:int):
+        idx_param = Int32Value()
+        idx_param.value = int(idx)
+        answer = self._stub_access.ResetUserAccessToken(idx_param)
+        answer = MessageToDict(answer)
+        return answer
+
+    def get_permission_list(self):
+        answer = self._stub_access.GetPermissionList(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
+
+    def set_user_access_permissions(self, idx:int, permissions:List[str]):
+        logger.debug("Permissions: %s", permissions)
+        adds = ServiceAccess()
+        removes = ServiceAccess()
+        sets = ServiceAccess()
+        for permission in permissions:
+            match = self._permission_str_regex.match(permission)
+            if match is None:
+                logger.warning("Invalid permission: %s", permission)
+                continue
+            if match.group(1) is None:
+                logger.debug("SET: %s:%s", match.group(2), match.group(4))
+                sets.services[match.group(2)].permission.append(
+                    match.group(4) if match.group(4) is not None else "all")
+            if match.group(1) == '+':
+                logger.debug("ADD: %s:%s", match.group(2), match.group(4))
+                adds.services[match.group(2)].permission.append(
+                    match.group(4) if match.group(4) is not None else "all")
+            if match.group(1) == '-':
+                logger.debug("DEL: %s:%s", match.group(2), match.group(4))
+                removes.services[match.group(2)].permission.append(
+                    match.group(4) if match.group(4) is not None else "all")
+
+        query = PermissionChanges(user_access_idx=int(idx), adds=adds, removes=removes, sets=sets)
+
+        answer = self._stub_access.SetUserAccessPermissions(query)
+        answer = MessageToDict(answer)
+        return answer

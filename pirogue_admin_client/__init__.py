@@ -2,18 +2,20 @@ from cryptography import x509
 from enum import Enum
 from pathlib import Path
 
+import os
 import grpc
 import yaml
 from cryptography.x509.oid import NameOID
 
 from pirogue_admin_api import PIROGUE_ADMIN_TCP_PORT
-from pirogue_admin_client.adapters import SystemAdapter, NetworkAdapter, ServicesAdapter, access_token_call_credentials
+from pirogue_admin_client.adapters import AccessAdapter, SystemAdapter, NetworkAdapter, ServicesAdapter, access_token_call_credentials
+
 
 ADMIN_VAR_DIR = '/var/lib/pirogue/admin'
 USERLAND_CLIENT_CONFIG_FILENAME = '.pirogue-admin-client.conf'
 
 
-class PirogueAdminClientAdapter(SystemAdapter, NetworkAdapter, ServicesAdapter):
+class PirogueAdminClientAdapter(SystemAdapter, NetworkAdapter, ServicesAdapter, AccessAdapter):
     _host: str
     _port: int
     _token: str
@@ -25,6 +27,8 @@ class PirogueAdminClientAdapter(SystemAdapter, NetworkAdapter, ServicesAdapter):
         self._port = port
         self._token = token
         self._certificate = certificate
+
+        self._setup_env()
 
         self._local_pirogue_client_config_path = Path(ADMIN_VAR_DIR, 'client.yaml')
         self._userland_client_config_path = Path(Path.home(), USERLAND_CLIENT_CONFIG_FILENAME)
@@ -56,6 +60,10 @@ class PirogueAdminClientAdapter(SystemAdapter, NetworkAdapter, ServicesAdapter):
         channel = grpc.secure_channel(chan_str, composite_credentials, options)
 
         super(PirogueAdminClientAdapter, self).__init__(channel)
+
+    def _setup_env(self):
+        global ADMIN_VAR_DIR
+        ADMIN_VAR_DIR = os.getenv('PIROGUE_ADMIN_VAR_DIR', ADMIN_VAR_DIR)
 
     def _load_configuration(self):
         loaded_config = None
