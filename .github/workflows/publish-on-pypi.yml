@@ -27,6 +27,33 @@ jobs:
         --user
     - name: Build a binary wheel and a source tarball
       run: python3 -m build
+    - name: Comply with PEP-625 (underscore)
+      run: |
+        # setuptools 66.11 does not properly name the tar.gz archive
+        # since our build pipeline is locked to this version
+        # we have to fix tgz name manually to comply with pypi
+        
+        cd dist
+        
+        for file in *.tar.gz; do
+          # Rename all file package-name-version.tar.gz
+          # into package_name-version.tar.gz
+        
+          filename=$(basename "$file" .tar.gz)
+          
+          name_part=$(echo "$filename" | sed -E 's/(-[0-9].*)$//')
+          
+          version_part=$(echo "$filename" | sed -E "s/^$name_part//")
+          
+          new_name_part=$(echo "$name_part" | tr '-' '_')
+        
+          new_file="${new_name_part}${version_part}.tar.gz"
+        
+          if [ "$file" != "$new_file" ]; then
+            echo "Renaming $file to $new_file"
+            mv "$file" "$new_file"
+          fi
+        done
     - name: Store the distribution packages
       if: github.event_name == 'release'
       uses: actions/upload-artifact@v4

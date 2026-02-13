@@ -15,6 +15,21 @@ $ pirogue-admin-client system get-configuration --help
 ```
 
 ## Available commands
+### Access section
+```shell
+pirogue-admin-client access reset-administration-token
+pirogue-admin-client access get-administration-token
+pirogue-admin-client access get-administration-certifcate
+pirogue-admin-client access get-administration-clis
+pirogue-admin-client access create-user-access
+pirogue-admin-client access get-user-access <idx>
+pirogue-admin-client access list-user-accesses
+pirogue-admin-client access delete-user-access <idx>
+pirogue-admin-client access reset-user-access-token <idx>
+pirogue-admin-client access get-permission-list
+pirogue-admin-client access set-user-access-permissions <idx> <permissions> [...<permissions>]
+```
+
 ### System section
 ```shell
 pirogue-admin-client system get-configuration-tree
@@ -36,10 +51,6 @@ pirogue-adminc-client system list-connected-devices
 
 ### External network section
 ```shell
-pirogue-admin-client external-network reset-administration-token
-pirogue-admin-client external-network get-administration-token
-pirogue-admin-client external-network get-administration-certifcate
-pirogue-admin-client external-network get-administration-clis
 pirogue-admin-client external-network enable-public-access --domain <public_domain_name> --email <administration_email>
 pirogue-admin-client external-network disable-public-access
 ```
