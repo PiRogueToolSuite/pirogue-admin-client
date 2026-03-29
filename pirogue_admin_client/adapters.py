@@ -1,9 +1,6 @@
-import functools
 import logging
 import re
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Optional, Callable, List
+from typing import Optional, List, Dict, TextIO
 
 import grpc
 import yaml
@@ -20,12 +17,9 @@ from pirogue_admin_api import (
     PIROGUE_ADMIN_AUTH_HEADER, PIROGUE_ADMIN_AUTH_SCHEME,
     PIROGUE_ADMIN_TCP_PORT)
 from pirogue_admin_api.network_pb2 import WifiConfiguration, VPNPeerAddRequest, ClosePortRequest, IsolatedPort, PublicAccessRequest
-from pirogue_admin_api.services_pb2 import DashboardConfiguration, SuricataRulesSource
+from pirogue_admin_api.services_pb2 import DashboardConfiguration, SuricataRulesSource, DeviceMonitoring, DeviceMonitoringFilter
 from pirogue_admin_api.access_pb2 import (
-    MethodAccess,
     ServiceAccess,
-    UserAccess,
-    UserAccessList,
     PermissionChanges,
 )
 from pirogue_admin_client.types import OperatingMode
@@ -256,12 +250,56 @@ class ServicesAdapter(BaseAdapter):
             answer = answer['sources']
         return answer
 
-    def add_suricata_rules_source(self, name: str, url: str):
+    def _add_suricata_rules_source__with_params_list(self, name: str, url: str = None, params:List[str] = None):
+        params_dict = None
+        if params:
+            params_dict = dict(map(lambda s: s.split('=', maxsplit=1), params))
+        self.add_suricata_rules_source(name, url, params_dict)
+
+    def add_suricata_rules_source(self, name: str, url: str = None, params:Dict[str,str] = None):
         add_request = SuricataRulesSource(name=name, url=url)
+        if params:
+            for (k, v) in params.items():
+                add_request.parameters[k] = v
         answer = self._stub_services.AddSuricataRulesSource(add_request)
 
     def delete_suricata_rules_source(self, name: str):
         answer = self._stub_services.DeleteSuricataRulesSource(StringValue(value=name))
+
+    def list_device_monitorings(self):
+        answer = self._stub_services.ListDeviceMonitorings(EMPTY)
+        answer = MessageToDict(answer, preserving_proto_field_name=True)
+        if 'monitorings' in answer:
+            answer = answer['monitorings']
+        return answer
+
+    def get_device_monitoring_template(self):
+        answer = self._stub_services.GetDeviceMonitoringTemplate(EMPTY)
+        answer = MessageToDict(answer, preserving_proto_field_name=True)
+        example_name = answer.pop('name', None)
+        return answer
+
+    def add_device_monitoring_by_file_descriptor(self, name: str, yaml_file: TextIO):
+        configuration = yaml.safe_load(yaml_file)
+        self.add_device_monitoring(name, configuration)
+
+    def add_device_monitoring(self, name: str, configuration: Dict):
+        device_monitoring_data = dict()
+        for (k, v) in configuration.items():
+            if k == 'filters':
+                filters = []
+                for filter_item in v:
+                    filter_request = DeviceMonitoringFilter(**filter_item)
+                    filters.append(filter_request)
+                device_monitoring_data['filters'] = filters
+            else:
+                device_monitoring_data[k] = v
+        add_request = DeviceMonitoring(name=name, **device_monitoring_data)
+        answer = self._stub_services.AddDeviceMonitoring(add_request)
+
+    def delete_device_monitoring(self, name: str):
+        answer = self._stub_services.DeleteDeviceMonitoring(StringValue(value=name))
+
 
 class AccessAdapter(BaseAdapter):
     _stub_access: access_pb2_grpc.AccessStub

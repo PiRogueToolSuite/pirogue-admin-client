@@ -105,6 +105,7 @@ def main():
     vpn_parser = section_subparser.add_parser('vpn', help='VPN related administration')
     wifi_parser = section_subparser.add_parser('wifi', help='WiFi related administration')
     suricata_rules_parser = section_subparser.add_parser('suricata-rules', help='Suricata related administration')
+    device_monitoring_parser = section_subparser.add_parser('device-monitoring', help='Device monitoring related administration')
     dashboard_parser = section_subparser.add_parser('dashboard', help='Dashboard related administration')
     access_parser = section_subparser.add_parser('access', help='Access related administration')
 
@@ -273,8 +274,6 @@ examples:
     wifi_set_configuration.add_argument('--country-code', type=str, default=None)
     wifi_set_configuration.set_defaults(func='set_wifi_configuration')
 
-    """
-    # FIXME: Suricate rules management disabled for now
     #
     # Suricata rules related subparser
     suricata_rules_subparser = suricata_rules_parser.add_subparsers(title="Suricata administration")
@@ -287,16 +286,55 @@ examples:
     sr_delete_suricata_rules_source = suricata_rules_subparser.add_parser(
         'del-source',
         help='delete one suricata rules source')
-    sr_delete_suricata_rules_source.add_argument('url')
+    sr_delete_suricata_rules_source.add_argument('name')
     sr_delete_suricata_rules_source.set_defaults(func='delete_suricata_rules_source')
     #
     sr_add_suricata_rules_source = suricata_rules_subparser.add_parser(
         'add-source',
         help='add one suricata rules source')
     sr_add_suricata_rules_source.add_argument('name')
-    sr_add_suricata_rules_source.add_argument('url')
-    sr_add_suricata_rules_source.set_defaults(func='add_suricata_rules_source')
-    """
+    sr_add_suricata_rules_source.add_argument('--url', default=None)
+    sr_add_suricata_rules_source.add_argument(
+        '--params',
+        default=None, metavar="KEY=VALUE", nargs='+',
+        help="Set parameters needed for some source activation.")
+    sr_add_suricata_rules_source.set_defaults(func='_add_suricata_rules_source__with_params_list')
+
+    #
+    # Device Monitoring
+    device_monitoring_subparser = device_monitoring_parser.add_subparsers(title="Device monitoring administration")
+    #
+    dm_list_monitorings = device_monitoring_subparser.add_parser(
+        'list-monitorings',
+        help='list all active devices monitorings'
+    )
+    dm_list_monitorings.set_defaults(func='list_device_monitorings')
+    #
+    dm_get_template = device_monitoring_subparser.add_parser(
+        'get-device-monitoring-template',
+        help='get a device monitoring YAML template (as consumed by add-monitoring command)'
+    )
+    dm_get_template.set_defaults(func='get_device_monitoring_template')
+    #
+    dm_add_monitoring = device_monitoring_subparser.add_parser(
+        'add-monitoring',
+        help='add one device monitoring'
+    )
+    dm_add_monitoring.add_argument('name')
+    dm_add_monitoring.add_argument(
+        'yaml_file',
+        action='store', type=argparse.FileType('r'),
+        help='''add the given configuration as device monitoring.
+        Configuration is read from a the given input file.
+        Configuration is a YAML structure as described by 'get_device_monitoring_template' command''')
+    dm_add_monitoring.set_defaults(func='add_device_monitoring_by_file_descriptor')
+    #
+    dm_del_monitoring = device_monitoring_subparser.add_parser(
+        'del-monitoring',
+        help='add one device monitoring'
+    )
+    dm_del_monitoring.add_argument('name')
+    dm_del_monitoring.set_defaults(func='delete_device_monitoring')
 
     #
     # Dashboard related subparser
