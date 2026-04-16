@@ -16,7 +16,7 @@ license = { text = "GPL-3.0-or-later" }
 
 requires-python = ">= 3.9"
 dependencies = [
-  "cryptography~=38.0.4",
+  "cryptography",
   "grpcio",
   "pirogue_admin_api==2.0.5",
   "pyyaml"
