@@ -1,9 +1,9 @@
-pirogue-admin-client (2.1.0) UNRELEASED; urgency=medium
+pirogue-admin-client (2.1.0) trixie; urgency=medium
 
   * Lift version requirements on cryptography, making the package
     installable on Debian 13.
 
- -- Cyril Brulebois <cyril@debamax.com>  Thu, 16 Apr 2026 14:48:38 +0200
+ -- Cyril Brulebois <kibi@debian.org>  Thu, 16 Apr 2026 14:49:35 +0200
 
 pirogue-admin-client (2.0.7) bookworm; urgency=medium
 
