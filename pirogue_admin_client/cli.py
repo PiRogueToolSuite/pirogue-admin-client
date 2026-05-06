@@ -143,38 +143,15 @@ def main():
         help='get system hostname')
     system_get_hostname.set_defaults(func='get_hostname')
     #
-    system_set_hostname = system_subparser.add_parser(
-        'set-hostname',
-        help='set system hostname')
-    system_set_hostname.add_argument('hostname')
-    system_set_hostname.set_defaults(func='set_hostname')
-    #
     system_get_locale = system_subparser.add_parser(
         'get-locale',
         help='set system hostname')
     system_get_locale.set_defaults(func='get_locale')
     #
-    system_set_locale = system_subparser.add_parser(
-        'set-locale',
-        help='set system hostname')
-    system_set_locale.add_argument('locale')
-    system_set_locale.set_defaults(func='set_locale')
-    #
     system_get_timezone = system_subparser.add_parser(
         'get-timezone',
         help='set system hostname')
     system_get_timezone.set_defaults(func='get_timezone')
-    #
-    system_set_timezone = system_subparser.add_parser(
-        'set-timezone',
-        help='set system hostname')
-    system_set_timezone.add_argument('timezone')
-    system_set_timezone.set_defaults(func='set_timezone')
-    #
-    system_list_connected_devices = system_subparser.add_parser(
-        'list-connected-devices',
-        help='list all connected devices to the PiRogue system')
-    system_list_connected_devices.set_defaults(func='list_connected_devices')
 
     #
     # External related subparser
@@ -213,6 +190,11 @@ def main():
         'list-open-ports',
         help='list open ports on EXTERNAL interface')
     isolated_list_open_ports.set_defaults(func='list_isolated_open_ports')
+    #
+    isolated_list_connected_devices = isolated_subparser.add_parser(
+        'list-connected-devices',
+        help='list all connected devices to the PiRogue isolated network')
+    isolated_list_connected_devices.set_defaults(func='list_connected_devices')
 
     #
     # VPN related subparser
@@ -249,7 +231,7 @@ def main():
     vpn_delete_peer.set_defaults(func='delete_vpn_peer')
 
     #
-    # VPN related subparser
+    # WiFi related subparser
     wifi_subparser = wifi_parser.add_subparsers(title="WiFi administration")
     #
     wifi_get_configuration = wifi_subparser.add_parser(
@@ -386,6 +368,11 @@ examples:
         help='retrieve user access details given its index')
     access_get_user_access.add_argument('idx')
     access_get_user_access.set_defaults(func='get_user_access')
+    #
+    access_my_user_access = access_subparser.add_parser(
+        'my-user-access',
+        help='retrieve my user access details')
+    access_my_user_access.set_defaults(func='my_user_access')
     #
     access_list_user_accesses = access_subparser.add_parser(
         'list-user-accesses',

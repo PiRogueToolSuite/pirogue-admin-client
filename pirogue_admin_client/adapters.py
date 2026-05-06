@@ -116,27 +116,13 @@ class SystemAdapter(BaseAdapter):
         answer = MessageToDict(answer)
         return answer
 
-    def set_hostname(self, hostname: str):
-        answer = self._stub_system.SetHostname(StringValue(value=hostname))
-
     def get_locale(self):
         answer = self._stub_system.GetLocale(EMPTY)
         answer = MessageToDict(answer)
         return answer
 
-    def set_locale(self, locale: str):
-        answer = self._stub_system.SetLocale(StringValue(value=locale))
-
     def get_timezone(self):
         answer = self._stub_system.GetTimezone(EMPTY)
-        answer = MessageToDict(answer)
-        return answer
-
-    def set_timezone(self, timezone: str):
-        answer = self._stub_system.SetTimezone(StringValue(value=timezone))
-
-    def list_connected_devices(self):
-        answer = self._stub_system.ListConnectedDevices(EMPTY)
         answer = MessageToDict(answer)
         return answer
 
@@ -225,6 +211,11 @@ class NetworkAdapter(BaseAdapter):
         if incoming_port:
             request.port = int(incoming_port)
         answer = self._stub_network.CloseIsolatedPort(request)
+
+    def list_connected_devices(self):
+        answer = self._stub_network.ListConnectedDevices(EMPTY)
+        answer = MessageToDict(answer)
+        return answer
 
 
 class ServicesAdapter(BaseAdapter):
@@ -390,5 +381,10 @@ class AccessAdapter(BaseAdapter):
         query = PermissionChanges(user_access_idx=int(idx), adds=adds, removes=removes, sets=sets)
 
         answer = self._stub_access.SetUserAccessPermissions(query)
+        answer = MessageToDict(answer)
+        return answer
+
+    def my_user_access(self):
+        answer = self._stub_access.MyUserAccess(EMPTY)
         answer = MessageToDict(answer)
         return answer

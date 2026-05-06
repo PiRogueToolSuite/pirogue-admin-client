@@ -1,3 +1,10 @@
+pirogue-admin-client (2.0.8) bookworm; urgency=medium
+
+  * Fix system-wide device listing tool
+  * Adds echo-like feature to Access service : MyUserAccess
+
+ -- Christophe Andral <christophe@andral.fr>  Wed, 22 Apr 2026 09:39:24 +0200
+
 pirogue-admin-client (2.0.7) bookworm; urgency=medium
 
   * Device monitoring management
