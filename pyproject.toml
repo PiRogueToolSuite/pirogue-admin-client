@@ -9,14 +9,14 @@ namespaces = false
 
 [project]
 name = "pirogue-admin-client"
-version = "2.0.8"
+version = "2.0.9"
 description = "Administration client for the PiRogue"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 
 requires-python = ">= 3.9"
 dependencies = [
-  "cryptography~=38.0.4",
+  "cryptography>=38.0.4",
   "grpcio",
   "pirogue_admin_api==2.0.6",
   "pyyaml"
