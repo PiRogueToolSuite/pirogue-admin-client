@@ -1,10 +1,10 @@
-pirogue-admin-client (3.0.0) UNRELEASED; urgency=medium
+pirogue-admin-client (3.0.0) trixie; urgency=medium
 
   * Build for trixie.
   * Update the pirogue-admin-api version accordingly.
   * Bump python3-pirogue-admin-api Builds-Depends/Depends accordingly.
 
- -- Cyril Brulebois <cyril@debamax.com>  Sun, 25 Oct 2026 23:32:45 +0100
+ -- Cyril Brulebois <cyril@debamax.com>  Sun, 25 Oct 2026 23:48:02 +0100
 
 pirogue-admin-client (2.0.8) bookworm; urgency=medium
 
